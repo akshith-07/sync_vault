@@ -1,0 +1,78 @@
+name: sync_vault
+description: Enterprise-grade offline-first database solution with automatic background sync and conflict resolution for Flutter applications.
+version: 1.0.0
+homepage: https://github.com/yourusername/sync_vault
+repository: https://github.com/yourusername/sync_vault
+issue_tracker: https://github.com/yourusername/sync_vault/issues
+documentation: https://github.com/yourusername/sync_vault#readme
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Local storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.1.1
+
+  # HTTP and networking
+  dio: ^5.4.0
+  connectivity_plus: ^5.0.2
+
+  # Background tasks
+  workmanager: ^0.5.2
+
+  # Security and encryption
+  flutter_secure_storage: ^9.0.0
+  crypto: ^3.0.3
+  encrypt: ^5.0.3
+
+  # Utilities
+  uuid: ^4.2.2
+  rxdart: ^0.27.7
+  meta: ^1.10.0
+  logger: ^2.0.2+1
+  intl: ^0.18.1
+  collection: ^1.18.0
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.7
+  hive_generator: ^2.0.1
+  isar_generator: ^3.1.0+1
+  json_serializable: ^6.7.1
+
+  # Testing
+  mockito: ^5.4.4
+  fake_async: ^1.3.1
+  integration_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^3.0.1
+
+flutter:
+  # This ensures the package is a Flutter package
+  plugin:
+    platforms:
+      android:
+        package: com.syncvault.sync_vault
+        pluginClass: SyncVaultPlugin
+      ios:
+        pluginClass: SyncVaultPlugin
+      macos:
+        pluginClass: SyncVaultPlugin
+      windows:
+        pluginClass: SyncVaultPlugin
+      linux:
+        pluginClass: SyncVaultPlugin
