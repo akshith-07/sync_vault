@@ -50,9 +50,6 @@ class SyncVaultConfig {
   /// Custom user identifier for multi-user support
   final String? userId;
 
-  /// Whether to use Isar instead of Hive (default: false = Hive)
-  final bool useIsar;
-
   const SyncVaultConfig({
     required this.databaseName,
     this.apiBaseUrl,
@@ -70,7 +67,6 @@ class SyncVaultConfig {
     this.enableFullTextSearch = false,
     this.version = 1,
     this.userId,
-    this.useIsar = false,
   });
 
   /// Create a copy with modified values
@@ -91,7 +87,6 @@ class SyncVaultConfig {
     bool? enableFullTextSearch,
     int? version,
     String? userId,
-    bool? useIsar,
   }) {
     return SyncVaultConfig(
       databaseName: databaseName ?? this.databaseName,
@@ -110,7 +105,6 @@ class SyncVaultConfig {
       enableFullTextSearch: enableFullTextSearch ?? this.enableFullTextSearch,
       version: version ?? this.version,
       userId: userId ?? this.userId,
-      useIsar: useIsar ?? this.useIsar,
     );
   }
 }
