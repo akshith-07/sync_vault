@@ -1,10 +1,17 @@
 name: sync_vault
-description: Enterprise-grade offline-first database solution with automatic background sync and conflict resolution for Flutter applications.
+description: Enterprise-grade offline-first database with automatic background sync, conflict resolution, encryption, and full-text search. Works with Firebase, Supabase, and custom REST APIs.
 version: 1.0.0
-homepage: https://github.com/yourusername/sync_vault
-repository: https://github.com/yourusername/sync_vault
-issue_tracker: https://github.com/yourusername/sync_vault/issues
-documentation: https://github.com/yourusername/sync_vault#readme
+homepage: https://github.com/akshith-07/sync_vault
+repository: https://github.com/akshith-07/sync_vault
+issue_tracker: https://github.com/akshith-07/sync_vault/issues
+documentation: https://github.com/akshith-07/sync_vault#readme
+
+topics:
+  - database
+  - offline-first
+  - sync
+  - hive
+  - local-storage
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -17,8 +24,6 @@ dependencies:
   # Local storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
   path_provider: ^2.1.1
 
   # HTTP and networking
@@ -49,7 +54,6 @@ dev_dependencies:
   # Code generation
   build_runner: ^2.4.7
   hive_generator: ^2.0.1
-  isar_generator: ^3.1.0+1
   json_serializable: ^6.7.1
 
   # Testing
@@ -62,7 +66,7 @@ dev_dependencies:
   flutter_lints: ^3.0.1
 
 flutter:
-  # This ensures the package is a Flutter package
+  # This package uses Flutter plugins
   plugin:
     platforms:
       android:
@@ -76,3 +80,10 @@ flutter:
         pluginClass: SyncVaultPlugin
       linux:
         pluginClass: SyncVaultPlugin
+
+# Screenshots for pub.dev
+screenshots:
+  - description: 'SyncVault Database Architecture'
+    path: screenshots/architecture.png
+  - description: 'Example App Dashboard'
+    path: screenshots/example_app.png

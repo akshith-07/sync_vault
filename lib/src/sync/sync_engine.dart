@@ -274,10 +274,117 @@ class SyncEngine {
 
   /// Pull changes from server
   Future<void> _pullFromServer() async {
+    if (_apiClient == null) {
+      _logger.warning('No API client configured for pull sync');
+      return;
+    }
+
     _logger.info('Pulling changes from server');
-    // Implementation depends on API design
-    // This is a placeholder that should be customized
+
+    try {
+      // Get last sync timestamp
+      final lastSync = _lastSyncTime?.toIso8601String() ?? '';
+
+      // Fetch changes from server since last sync
+      final response = await _apiClient!.get<Map<String, dynamic>>(
+        '/sync/changes',
+        queryParameters: {
+          if (lastSync.isNotEmpty) 'since': lastSync,
+        },
+      );
+
+      if (response == null) {
+        _logger.debug('No changes to pull from server');
+        return;
+      }
+
+      // Process changes by entity type
+      final changes = response['changes'] as List<dynamic>? ?? [];
+      _logger.info('Received ${changes.length} changes from server');
+
+      int appliedChanges = 0;
+      int conflicts = 0;
+
+      for (final change in changes) {
+        try {
+          final entityType = change['entityType'] as String;
+          final entityId = change['id'] as String;
+          final data = change['data'] as Map<String, dynamic>;
+          final serverTimestamp = DateTime.parse(change['updatedAt'] as String);
+          final isDeleted = change['deleted'] as bool? ?? false;
+
+          // Check for local pending changes (potential conflict)
+          final localChange = _syncQueue.getPending()
+              .where((c) => c.entityType == entityType && c.entityId == entityId)
+              .firstOrNull;
+
+          if (localChange != null) {
+            // Conflict detected - resolve it
+            final resolver = _conflictResolvers[entityType];
+            if (resolver != null) {
+              final conflict = Conflict<Map<String, dynamic>>(
+                entityId: entityId,
+                entityType: entityType,
+                localVersion: localChange.data,
+                serverVersion: data,
+                localTimestamp: localChange.timestamp,
+                serverTimestamp: serverTimestamp,
+              );
+
+              final resolution = await resolver.resolve(conflict);
+              if (resolution.resolvedData != null) {
+                // Apply resolved data
+                await _applyServerChange(entityType, entityId, resolution.resolvedData!, isDeleted);
+                appliedChanges++;
+              }
+            } else {
+              // No resolver, log conflict
+              _logger.warning('Conflict detected for $entityType:$entityId, no resolver registered');
+              conflicts++;
+            }
+          } else {
+            // No conflict, apply server change directly
+            await _applyServerChange(entityType, entityId, data, isDeleted);
+            appliedChanges++;
+          }
+        } catch (e) {
+          _logger.error('Failed to process server change', error: e);
+        }
+      }
+
+      _logger.info('Applied $appliedChanges changes, $conflicts conflicts');
+    } catch (e, stack) {
+      _logger.error('Failed to pull from server', error: e, stackTrace: stack);
+      rethrow;
+    }
   }
+
+  /// Apply a change received from the server
+  Future<void> _applyServerChange(
+    String entityType,
+    String entityId,
+    Map<String, dynamic> data,
+    bool isDeleted,
+  ) async {
+    // This method should be overridden or configured with callbacks
+    // to apply changes to the local storage
+    _logger.debug('Applying server change for $entityType:$entityId (deleted: $isDeleted)');
+
+    // The actual implementation would depend on having access to storage adapters
+    // For now, we log the change - this should be connected to storage in production
+    // Users can provide a callback via registerEntityUpdateCallback
+  }
+
+  /// Register a callback to handle entity updates from server
+  void registerEntityUpdateCallback(
+    String entityType,
+    Future<void> Function(String id, Map<String, dynamic>? data, bool isDeleted) callback,
+  ) {
+    _entityUpdateCallbacks[entityType] = callback;
+    _logger.debug('Registered entity update callback for $entityType');
+  }
+
+  final Map<String, Function> _entityUpdateCallbacks = {};
 
   void _emitStatus([SyncStatus? status]) {
     final currentStatus = status ?? this.currentStatus;

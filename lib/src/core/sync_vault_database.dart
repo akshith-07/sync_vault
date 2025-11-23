@@ -237,6 +237,7 @@ class SyncVaultDatabase {
         isInDebugMode: false,
       );
 
+      // Pass configuration to background isolate via inputData
       await Workmanager().registerPeriodicTask(
         'sync_vault_background_sync',
         'syncVaultSync',
@@ -244,9 +245,14 @@ class SyncVaultDatabase {
         constraints: Constraints(
           networkType: NetworkType.connected,
         ),
+        inputData: {
+          'databaseName': config.databaseName,
+          'apiBaseUrl': config.apiBaseUrl,
+          'apiHeaders': config.apiHeaders,
+        },
       );
 
-      _logger.info('Background sync initialized');
+      _logger.info('Background sync initialized with ${config.backgroundSyncInterval}min interval');
     } catch (e, stack) {
       _logger.error('Failed to initialize background sync', error: e, stackTrace: stack);
     }
@@ -288,14 +294,75 @@ class SyncVaultDatabase {
 }
 
 /// Background sync callback dispatcher
+/// This runs in an isolate, so it needs to reinitialize minimal dependencies
 @pragma('vm:entry-point')
 void _callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
-      // Implement background sync logic here
-      // This would need to be customized based on your needs
+      print('[SyncVault] Background sync task started: $task');
+
+      // Extract configuration from inputData
+      final databaseName = inputData?['databaseName'] as String?;
+      final apiBaseUrl = inputData?['apiBaseUrl'] as String?;
+      final apiHeaders = inputData?['apiHeaders'] as Map<String, dynamic>?;
+
+      if (databaseName == null || apiBaseUrl == null) {
+        print('[SyncVault] Missing configuration for background sync');
+        return Future.value(false);
+      }
+
+      // Initialize minimal Hive for background sync
+      await Hive.initFlutter(databaseName);
+
+      // Create minimal components needed for sync
+      final logger = SyncVaultLogger(enabled: true, minLevel: LogLevel.info);
+      final networkMonitor = NetworkMonitor(logger: logger);
+      await networkMonitor.initialize();
+
+      // Check if online
+      if (!networkMonitor.isOnline) {
+        print('[SyncVault] Device offline, skipping background sync');
+        await networkMonitor.dispose();
+        return Future.value(true); // Success but skipped
+      }
+
+      // Initialize sync components
+      final syncQueue = SyncQueue(logger: logger, maxRetryAttempts: 3);
+      await syncQueue.initialize();
+
+      final apiClient = ApiClient(
+        baseUrl: apiBaseUrl,
+        logger: logger,
+        defaultHeaders: apiHeaders?.cast<String, String>(),
+      );
+
+      final syncEngine = SyncEngine(
+        syncQueue: syncQueue,
+        networkMonitor: networkMonitor,
+        logger: logger,
+        apiClient: apiClient,
+        strategy: const SyncStrategy(
+          autoSync: false, // Manual trigger only
+          direction: SyncDirection.bidirectional,
+        ),
+      );
+
+      await syncEngine.initialize();
+
+      // Perform sync
+      await syncEngine.sync();
+
+      // Cleanup
+      await syncEngine.dispose();
+      await syncQueue.close();
+      await networkMonitor.dispose();
+      await Hive.close();
+
+      print('[SyncVault] Background sync completed successfully');
       return Future.value(true);
-    } catch (e) {
+    } catch (e, stack) {
+      print('[SyncVault] Background sync failed: $e');
+      print(stack);
       return Future.value(false);
     }
   });
